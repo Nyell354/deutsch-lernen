@@ -172,16 +172,170 @@ function render(){
  if(state.page==="progress") renderProgress();
 }
 
+
 function renderHome(){
  pageHeader("Selamat datang!","Belajar bahasa Jerman selangkah demi selangkah.");
+
  const total=state.done.length;
- content.innerHTML=`<div class="panel hero"><div><div class="eyebrow" style="color:#d9e0ff">LEVEL ${state.level}</div><h2>Hallo! Schön, dass du da bist.</h2><p>Siap belajar bahasa Jerman hari ini?</p><div style="margin-top:17px"><button class="btn" id="startReading">Mulai belajar →</button></div></div><div class="hero-icon">🇩🇪</div></div>
- <div class="stats"><div class="stat"><strong>${state.level}</strong><span>Level aktif</span></div><div class="stat"><strong>${total}</strong><span>Materi selesai</span></div><div class="stat"><strong>${state.correct}</strong><span>Jawaban benar</span></div></div>
- <div class="panel"><div class="section-head"><h2>Jalur belajarmu</h2><span class="tag">A1 – C2</span></div><div class="data-grid">${["A1","A2","B1","B2","C1","C2"].map((l,i)=>`<button class="btn ${l===state.level?"":"secondary"}" data-level="${l}">${l}<br><small>${["Pemula","Dasar","Menengah","Menengah atas","Mahir","Sangat mahir"][i]}</small></button>`).join("")}</div></div>
- <div class="panel"><div class="section-head"><h2>Materi hari ini</h2><span class="tag">Level ${state.level}</span></div><p><b>Reading:</b> ${readingData[state.level].title} — ${readingData[state.level].desc}</p><p><b>Wortschatz:</b> 3 kosakata pilihan (kata kerja, kata benda, kata sifat).</p><p><b>Übungen:</b> Latihan singkat untuk menguji pemahaman.</p></div>`;
+
+ content.innerHTML=`
+ <div class="panel hero">
+  <div>
+   <div class="eyebrow" style="color:#d9e0ff">LEVEL ${state.level}</div>
+   <h2>Hallo! Schön, dass du da bist.</h2>
+   <p>Siap belajar bahasa Jerman hari ini?</p>
+   <div style="margin-top:17px">
+    <button class="btn" id="startReading">Mulai belajar →</button>
+   </div>
+  </div>
+  <div class="hero-icon">🇩🇪</div>
+ </div>
+
+ <div class="stats">
+  <div class="stat"><strong>${state.level}</strong><span>Level aktif</span></div>
+  <div class="stat"><strong>${total}</strong><span>Materi selesai</span></div>
+  <div class="stat"><strong>${state.correct}</strong><span>Jawaban benar</span></div>
+ </div>
+
+ <div class="panel">
+  <div class="section-head">
+   <h2>Jalur belajarmu</h2>
+   <span class="tag">A1 – C2</span>
+  </div>
+  <div class="data-grid">
+   ${["A1","A2","B1","B2","C1","C2"].map((l,i)=>`
+    <button class="btn ${l===state.level?"":"secondary"}" data-level="${l}">
+     ${l}<br>
+     <small>${["Pemula","Dasar","Menengah","Menengah atas","Mahir","Sangat mahir"][i]}</small>
+    </button>
+   `).join("")}
+  </div>
+ </div>
+
+ <div class="panel">
+  <div class="section-head">
+   <h2>Materi hari ini</h2>
+   <span class="tag">Level ${state.level}</span>
+  </div>
+  <p><b>Reading:</b> ${readingData[state.level].title} — ${readingData[state.level].desc}</p>
+  <p><b>Wortschatz:</b> 3 kosakata pilihan.</p>
+  <p><b>Übungen:</b> Latihan singkat untuk menguji pemahaman.</p>
+ </div>
+
+ <div class="panel">
+  <div class="section-head">
+   <h2>✨ Generator Materi AI</h2>
+   <span class="tag">Gemini AI</span>
+  </div>
+
+  <p class="muted">
+   Buat materi bahasa Jerman berdasarkan level dan topik yang kamu inginkan.
+  </p>
+
+  <label for="aiTopic"><b>Topik pembelajaran</b></label>
+  <input
+   id="aiTopic"
+   type="text"
+   placeholder="Contoh: Einkaufen, Familie, Schule..."
+   style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;margin:9px 0 14px;font:inherit"
+  >
+
+  <button class="btn" id="generateBtn">
+   ✨ Buat Materi AI
+  </button>
+
+  <p id="aiStatus" class="muted" aria-live="polite"></p>
+
+  <div id="aiResult" hidden>
+   <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+   <h3 id="aiTitle"></h3>
+   <h4>🇩🇪 Bahasa Jerman</h4>
+   <p id="aiGerman" style="white-space:pre-wrap"></p>
+   <h4>🇮🇩 Terjemahan Indonesia</h4>
+   <p id="aiIndonesian" style="white-space:pre-wrap"></p>
+  </div>
+ </div>
+ `;
+
  $("#startReading").onclick=()=>setPage("reading");
- content.querySelectorAll("[data-level]").forEach(b=>b.onclick=()=>{state.level=b.dataset.level;render()});
+
+ content.querySelectorAll("[data-level]").forEach(b=>{
+  b.onclick=()=>{
+   state.level=b.dataset.level;
+   render();
+  };
+ });
+
+ $("#generateBtn").onclick=generateLearning;
 }
+
+
+async function generateLearning(){
+ const topic=$("#aiTopic").value.trim();
+ const button=$("#generateBtn");
+ const status=$("#aiStatus");
+ const result=$("#aiResult");
+
+ if(!topic){
+  status.textContent="Masukkan topik pembelajaran terlebih dahulu.";
+  return;
+ }
+
+ if(topic.length<2 || topic.length>100){
+  status.textContent="Topik harus terdiri dari 2 sampai 100 karakter.";
+  return;
+ }
+
+ const {data:sessionData,error:sessionError} =
+  await supabaseClient.auth.getSession();
+
+ if(sessionError || !sessionData.session){
+  status.textContent="Silakan login terlebih dahulu.";
+  return;
+ }
+
+ button.disabled=true;
+ button.textContent="Sedang membuat materi...";
+ status.textContent="Gemini sedang menyusun materi. Mohon tunggu...";
+ result.hidden=true;
+
+ try{
+  const {data,error}=await supabaseClient.functions.invoke(
+   "generate-learning",
+   {
+    body:{
+     level:state.level,
+     topic:topic
+    }
+   }
+  );
+
+  if(error){
+   throw error;
+  }
+
+  const lesson=data.lesson || data;
+
+  if(!lesson.title || !lesson.german_text || !lesson.indonesian_translation){
+   throw new Error("Format materi dari Gemini belum sesuai.");
+  }
+
+  $("#aiTitle").textContent=lesson.title;
+  $("#aiGerman").textContent=lesson.german_text;
+  $("#aiIndonesian").textContent=lesson.indonesian_translation;
+
+  result.hidden=false;
+  status.textContent="Materi berhasil dibuat dan dikirim ke database!";
+
+ }catch(error){
+  console.error("Gemini Error:",error);
+  status.textContent="Gagal membuat materi: "+error.message;
+ }finally{
+  button.disabled=false;
+  button.textContent="✨ Buat Materi AI";
+ }
+}
+
 
 function renderReading(){
  const d=readingData[state.level];
