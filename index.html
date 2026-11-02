@@ -240,13 +240,8 @@ function renderProgress(){
 document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>setPage(b.dataset.page)));
 $("#levelSelect").addEventListener("change",e=>{state.level=e.target.value;render()});
 
-/* =====================================
-   KONFIGURASI SUPABASE
-   Gunakan Project URL dan Publishable Key
-   ===================================== */
-
-const SUPABASE_URL = "MASUKKAN_PROJECT_URL";
-const SUPABASE_PUBLISHABLE_KEY = "MASUKKAN_PUBLISHABLE_KEY";
+const SUPABASE_URL = "https://lumavmisjbbfnbpmgiyn.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ypSExCgicQu_7n2nu4Ur9Q_Dyr3rLtz";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
