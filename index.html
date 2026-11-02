@@ -285,10 +285,13 @@ async function registerUser(){
 
   showAuthMessage("Sedang membuat akun...");
 
-  const {data,error} = await supabaseClient.auth.signUp({
-    email: email,
-    password: password
-  });
+const {data,error}=await supabaseClient.auth.signUp({
+  email,
+  password,
+  options: {
+    emailRedirectTo: window.location.origin + window.location.pathname
+  }
+});
 
   if(error){
     showAuthMessage(error.message, true);
